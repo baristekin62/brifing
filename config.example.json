@@ -1,0 +1,30 @@
+{
+  "erp_connection_source": "erp_connection.json",
+  "smtp_profiles_source": "smtp_profiles.json",
+  "smtp_profile_id": "SMTP-PRIMARY",
+  "queries_dir": "queries",
+  "output_dir": "output",
+  "logs_dir": "logs",
+  "recipients": {
+    "to": [
+      "ornek@firma.com"
+    ],
+    "cc": [],
+    "bcc": []
+  },
+  "subject_template": "ÖZEN GROSS Günlük Yönetici Brifingi ({date})",
+  "report_title": "ÖZEN GROSS Günlük Yönetici Brifingi",
+  "send_email": true,
+  "save_output": true,
+  "admin_username": "admin",
+  "admin_password": "ENV:ADMIN_PASSWORD",
+  "web_port": 8080,
+  "send_time": "08:00",
+  "send_time_enabled": true,
+  "insights": {
+    "enabled": true,
+    "anomaly_threshold_pct": 20.0,
+    "anomaly_days_back": 7,
+    "save_history": true
+  }
+}

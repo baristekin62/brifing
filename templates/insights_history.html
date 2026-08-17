@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}İçgörü Geçmişi — ÖZEN Brifing{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>🧠 İçgörü Geçmişi</h1>
+    <p>Günlük olarak kaydedilen metrikler. Anomali tespiti bu verilerle geçmiş ortalamayı karşılaştırır.</p>
+  </div>
+</div>
+
+{% if days %}
+  {% for d in days %}
+  <div class="card">
+    <h2>📅 {{ d.date }} <span class="badge badge-blue">{{ d.metrics|length }} metrik</span></h2>
+    {% if d.metrics %}
+    <table class="table">
+      <thead><tr><th>Sorgu</th><th>Metrik</th><th>Değer</th></tr></thead>
+      <tbody>
+        {% for m in d.metrics %}
+        <tr>
+          <td>{{ m.query }}</td>
+          <td>{{ m.label }}</td>
+          <td>{{ "{:,.2f}".format(m.value) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted">Bu tarihte kayıtlı metrik yok.</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+<p class="muted">Henüz içgörü geçmişi yok. Brifing çalıştırdığınızda (Ayarlar → İçgörü açıkken) otomatik kaydedilir.</p>
+{% endif %}
+{% endblock %}

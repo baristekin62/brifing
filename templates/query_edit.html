@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Yeni Sorgu' if is_new else 'Sorguyu Düzenle' }} — ÖZEN Brifing{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ '+ Yeni Sorgu' if is_new else '✏️ Sorguyu Düzenle' }}</h1>
+    <p>SQL sorgusunu yazın, başlık verin, brifinge ekleyin.</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('queries_list') }}">← Geri</a>
+</div>
+
+<div class="card">
+  <form method="post">
+    <div class="form-grid">
+      <div>
+        <label>Başlık (brifingde görünecek ad)</label>
+        <input type="text" name="title" value="{{ q.title if q else '' }}" required>
+      </div>
+      <div>
+        <label>Dosya adı <small>(boş bırakılırsa otomatik)</small></label>
+        <input type="text" name="filename" value="{{ q.file if q else '' }}" placeholder="ornek_sorgu.sql">
+      </div>
+      <div>
+        <label>Brifing sırası</label>
+        <input type="number" name="order" value="{{ q.order if q else '' }}" min="1">
+      </div>
+      <div class="check-field">
+        <label class="checkbox">
+          <input type="checkbox" name="enabled" {% if (not is_new and q.enabled) or is_new %}checked{% endif %}>
+          Brifingde aktif
+        </label>
+      </div>
+    </div>
+
+    <label>SQL Sorgusu</label>
+    <textarea name="sql" rows="18" class="code-editor" spellcheck="false" required>{{ sql if sql else '' }}</textarea>
+
+    <div class="kpi-editor">
+      <label><strong>📊 KPI Kartları</strong> <small>— brifing üstündeki özet panelde gösterilir (etiket + sütun adı + satır). Sütun adı sorgu sonucundaki başlıkla birebir aynı olmalı.</small></label>
+      <div id="kpiRows">
+        {% for k in (q.kpis if q else []) %}
+        <div class="kpi-row">
+          <input type="text" name="kpi_label" placeholder="Etiket (örn: Dünkü Ciro)" value="{{ k.label }}">
+          <input type="text" name="kpi_column" placeholder="Sütun adı (örn: CİRO)" value="{{ k.column }}">
+          <input type="number" name="kpi_row" placeholder="Satır" value="{{ k.row }}" min="0" style="width:80px">
+          <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">✕</button>
+        </div>
+        {% endfor %}
+      </div>
+      <button type="button" class="btn btn-sm" onclick="addKpi()">+ KPI Ekle</button>
+    </div>
+
+    <div class="kpi-editor" style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:16px">
+      <label><strong>🧠 Günlük Özet Ayarları</strong> <small>— brifing üstündeki "Günlük Özet" kutusunda bu sorgu için ne gösterilecek.</small></label>
+      <div class="form-grid" style="margin-top:10px">
+        <div style="grid-column:1/-1">
+          <label>Toplamı gösterilecek kolonlar <small>(virgülle; boş = yok)</small></label>
+          <input type="text" name="summary_totals" placeholder="örn: Ciro, Hedef" value="{{ q.summary.totals|join(', ') if q and q.summary and q.summary.totals else '' }}">
+        </div>
+        <div>
+          <label>Oran payı kolonu <small>(boş = oran yok)</small></label>
+          <input type="text" name="summary_ratio_num" placeholder="örn: Ciro" value="{{ q.summary.ratio_num if q and q.summary else '' }}">
+        </div>
+        <div>
+          <label>Oran paydası kolonu</label>
+          <input type="text" name="summary_ratio_den" placeholder="örn: Hedef" value="{{ q.summary.ratio_den if q and q.summary else '' }}">
+        </div>
+        <div>
+          <label>Oran etiketi</label>
+          <input type="text" name="summary_ratio_label" placeholder="örn: Hedef Gerçekleşme" value="{{ q.summary.ratio_label if q and q.summary else '' }}">
+        </div>
+        <div class="check-field">
+          <label class="checkbox">
+            <input type="checkbox" name="summary_delta" {% if q and q.summary and q.summary.delta %}checked{% endif %}>
+            Önceki rapora göre artış/azalış göster (▲/▼)
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">💾 Kaydet</button>
+      <button class="btn btn-secondary" type="button" onclick="testQuery()">▶ Test Et</button>
+      <a class="btn btn-secondary" href="{{ url_for('queries_list') }}">İptal</a>
+    </div>
+  </form>
+</div>
+
+<div class="card" id="testResult" style="display:none">
+  <h2>▶ Sorgu Testi</h2>
+  <div id="testResultBody"></div>
+</div>
+
+<script>
+function addKpi() {
+  var d = document.createElement('div');
+  d.className = 'kpi-row';
+  d.innerHTML = '<input type="text" name="kpi_label" placeholder="Etiket (örn: Dünkü Ciro)">' +
+                '<input type="text" name="kpi_column" placeholder="Sütun adı (örn: CİRO)">' +
+                '<input type="number" name="kpi_row" placeholder="Satır" value="0" min="0" style="width:80px">' +
+                '<button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">✕</button>';
+  document.getElementById('kpiRows').appendChild(d);
+}
+
+function testQuery() {
+  var sql = document.querySelector('textarea[name="sql"]').value;
+  if (!sql.trim()) { alert('Önce SQL yazın.'); return; }
+  var box = document.getElementById('testResult');
+  var body = document.getElementById('testResultBody');
+  box.style.display = '';
+  body.innerHTML = '<p class="muted">Çalıştırılıyor…</p>';
+  fetch('{{ url_for('query_test') }}', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'sql=' + encodeURIComponent(sql)
+  }).then(r => r.json()).then(d => {
+    if (!d.ok) {
+      body.innerHTML = '<p class="error">' + d.error + '</p>';
+      return;
+    }
+    if (!d.success) {
+      body.innerHTML = '<p class="error">Sorgu hatası: ' + d.error + '</p>';
+      return;
+    }
+    var h = '<p class="muted">' + d.row_count + ' satır · ' + d.duration_ms.toFixed(1) + ' ms</p>';
+    if (d.columns.length && d.row_count) {
+      h += '<table class="table"><thead><tr>';
+      d.columns.forEach(function(c) { h += '<th>' + c + '</th>'; });
+      h += '</tr></thead><tbody>';
+      (d.rows.slice(0, 50)).forEach(function(r) {
+        h += '<tr>';
+        r.forEach(function(v) { h += '<td>' + v + '</td>'; });
+        h += '</tr>';
+      });
+      h += '</tbody></table>';
+    }
+    body.innerHTML = h;
+  }).catch(function(e) {
+    body.innerHTML = '<p class="error">İstek hatası: ' + e + '</p>';
+  });
+}
+</script>
+{% endblock %}

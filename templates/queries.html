@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Sorgular — ÖZEN Brifing{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>🗂 Sorgu Yönetimi</h1>
+    <p>Brifinge dahil edilecek maddeleri ekleyin, çıkarın, sıralayın.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('query_new') }}">+ Yeni Sorgu</a>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr><th>Sıra</th><th>Başlık</th><th>Dosya</th><th>Durum</th><th>İşlemler</th></tr>
+    </thead>
+    <tbody>
+      {% for q in queries %}
+      <tr>
+        <td>{{ q.order }}</td>
+        <td>{{ q.title }}</td>
+        <td><code>{{ q.file }}</code></td>
+        <td>
+          <form method="post" action="{{ url_for('query_toggle', filename=q.file) }}" style="display:inline">
+            {% if q.enabled %}
+            <span class="badge badge-green">Aktif</span>
+            <button class="btn btn-sm btn-danger">Kapat</button>
+            {% else %}
+            <span class="badge badge-gray">Pasif</span>
+            <button class="btn btn-sm btn-success">Aç</button>
+            {% endif %}
+          </form>
+        </td>
+        <td class="row-actions">
+          <form method="post" action="{{ url_for('query_move', filename=q.file, direction='up') }}" style="display:inline">
+            <button class="btn btn-sm">▲</button>
+          </form>
+          <form method="post" action="{{ url_for('query_move', filename=q.file, direction='down') }}" style="display:inline">
+            <button class="btn btn-sm">▼</button>
+          </form>
+          <a class="btn btn-sm" href="{{ url_for('query_edit', filename=q.file) }}">Düzenle</a>
+          <form method="post" action="{{ url_for('query_delete', filename=q.file) }}" style="display:inline"
+                onsubmit="return confirm('Bu sorgu silinsin mi?');">
+            <button class="btn btn-sm btn-danger">Sil</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

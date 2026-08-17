@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Panel — ÖZEN Brifing{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>📊 Brifing Paneli</h1>
+    <p>Günlük yönetici brifingini yönetin, çalıştırın ve görüntüleyin.</p>
+  </div>
+  <div class="head-actions">
+    <form method="post" action="{{ url_for('run_briefing_now') }}" style="display:inline">
+      <input type="hidden" name="send_email" value="off">
+      <button class="btn btn-secondary" type="submit">▶ Önizle (mail yok)</button>
+    </form>
+    <form method="post" action="{{ url_for('run_briefing_now') }}" style="display:inline">
+      <input type="hidden" name="send_email" value="on">
+      <button class="btn btn-primary" type="submit">🚀 Çalıştır + Gönder</button>
+    </form>
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <span class="stat-label">Aktif Sorgu</span>
+    <span class="stat-value">{{ active_count }} / {{ queries|length }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Alıcı</span>
+    <span class="stat-value">{{ cfg.recipients.to|length }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">E-posta</span>
+    <span class="stat-value">{{ 'AÇIK' if cfg.send_email else 'KAPALI' }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Zamanlama</span>
+    <span class="stat-value">{{ cfg.send_time or '—' }}</span>
+  </div>
+</div>
+
+<div class="card">
+  <h2>🗂 Sorgu Listesi</h2>
+  <table class="table">
+    <thead>
+      <tr><th>Sıra</th><th>Başlık</th><th>Dosya</th><th>Durum</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for q in queries %}
+      <tr>
+        <td>{{ q.order }}</td>
+        <td>{{ q.title }}</td>
+        <td><code>{{ q.file }}</code></td>
+        <td>
+          {% if q.enabled %}<span class="badge badge-green">Aktif</span>
+          {% else %}<span class="badge badge-gray">Pasif</span>{% endif %}
+        </td>
+        <td class="row-actions">
+          <a class="btn btn-sm" href="{{ url_for('query_edit', filename=q.file) }}">Düzenle</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>📁 Son Raporlar</h2>
+  {% if reports %}
+  <table class="table">
+    <thead><tr><th>Dosya</th><th>Tarih</th><th></th></tr></thead>
+    <tbody>
+      {% for r in reports %}
+      <tr>
+        <td><code>{{ r.file }}</code></td>
+        <td>{{ r.time|datetime_tr }}</td>
+        <td class="row-actions">
+          <a class="btn btn-sm btn-secondary" target="_blank" href="{{ url_for('report_view', filename=r.file) }}">Görüntüle</a>
+          {% if r.excel %}
+          <a class="btn btn-sm btn-primary" href="{{ url_for('report_excel', filename=r.excel) }}">📥 Excel</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Henüz rapor üretilmemiş.</p>
+  {% endif %}
+</div>
+{% endblock %}

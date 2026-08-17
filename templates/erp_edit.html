@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}ERP Düzenle — ÖZEN Brifing{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>✏️ ERP Profili: {{ prof.profile_name }}</h1>
+    <p>{{ prof.profile_id }}</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('erp_list') }}">← Geri</a>
+</div>
+
+<div class="card">
+  <form method="post">
+    <div class="form-grid">
+      <div>
+        <label>Profil Adı</label>
+        <input type="text" name="profile_name" value="{{ prof.profile_name }}">
+      </div>
+      <div>
+        <label>Sunucu</label>
+        <input type="text" name="server" value="{{ prof.server }}">
+      </div>
+      <div>
+        <label>Veritabanı</label>
+        <input type="text" name="database" value="{{ prof.database }}">
+      </div>
+      <div>
+        <label>Kullanıcı Adı</label>
+        <input type="text" name="username" value="{{ prof.username }}">
+      </div>
+      <div>
+        <label>Şifre <small>(boş bırakılırsa değişmez)</small></label>
+        <input type="password" name="password" value="{{ prof.password_encrypted }}" autocomplete="new-password">
+      </div>
+      <div>
+        <label>ODBC Driver</label>
+        <input type="text" name="driver" value="{{ prof.driver }}">
+      </div>
+      <div class="check-field">
+        <label class="checkbox"><input type="checkbox" name="encrypt" {% if prof.encrypt %}checked{% endif %}> Encrypt</label>
+        <label class="checkbox"><input type="checkbox" name="trust_server_certificate" {% if prof.trust_server_certificate %}checked{% endif %}> Trust Server Certificate</label>
+        <label class="checkbox"><input type="checkbox" name="is_active" {% if prof.is_active %}checked{% endif %}> Aktif</label>
+        <label class="checkbox"><input type="checkbox" name="make_active"> Bu profili Varsayılan Yap</label>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">💾 Kaydet</button>
+      <a class="btn btn-secondary" href="{{ url_for('erp_list') }}">İptal</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

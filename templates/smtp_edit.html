@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}SMTP Düzenle — ÖZEN Brifing{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>✏️ SMTP Profili: {{ prof.name }}</h1>
+    <p>{{ prof.id }}</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('smtp_list') }}">← Geri</a>
+</div>
+
+<div class="card">
+  <form method="post">
+    <div class="form-grid">
+      <div>
+        <label>Profil Adı</label>
+        <input type="text" name="name" value="{{ prof.name }}">
+      </div>
+      <div>
+        <label>SMTP Sunucusu</label>
+        <input type="text" name="host" value="{{ prof.host }}">
+      </div>
+      <div>
+        <label>Port</label>
+        <input type="number" name="port" value="{{ prof.port }}">
+      </div>
+      <div>
+        <label>Kullanıcı Adı</label>
+        <input type="text" name="username" value="{{ prof.username }}">
+      </div>
+      <div>
+        <label>Şifre <small>(boş bırakılırsa değişmez)</small></label>
+        <input type="password" name="password" value="{{ prof.decoded_password }}" autocomplete="new-password">
+      </div>
+      <div>
+        <label>Gönderen (From)</label>
+        <input type="text" name="from_address" value="{{ prof.from_address }}">
+      </div>
+      <div>
+        <label>Görünen Ad</label>
+        <input type="text" name="display_name" value="{{ prof.display_name }}">
+      </div>
+      <div>
+        <label>Yanıt Adresi</label>
+        <input type="text" name="reply_to" value="{{ prof.reply_to }}">
+      </div>
+      <div>
+        <label>Zaman Aşımı (sn)</label>
+        <input type="number" name="timeout_sec" value="{{ prof.timeout_sec }}">
+      </div>
+      <div class="check-field">
+        <label class="checkbox"><input type="checkbox" name="use_ssl" {% if prof.use_ssl %}checked{% endif %}> SSL Kullan</label>
+        <label class="checkbox"><input type="checkbox" name="use_tls" {% if prof.use_tls %}checked{% endif %}> TLS (STARTTLS)</label>
+        <label class="checkbox"><input type="checkbox" name="use_auth" {% if prof.use_auth %}checked{% endif %}> Kimlik Doğrula</label>
+        <label class="checkbox"><input type="checkbox" name="is_default" {% if prof.is_default %}checked{% endif %}> Varsayılan Profil</label>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">💾 Kaydet</button>
+      <a class="btn btn-secondary" href="{{ url_for('smtp_list') }}">İptal</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

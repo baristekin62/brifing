@@ -1,0 +1,24 @@
+{
+  "active_profile_id": "PROD-PRIMARY",
+  "saved_at": "",
+  "profiles": [
+    {
+      "profile_id": "PROD-PRIMARY",
+      "profile_name": "Production ERP",
+      "provider_type": "SQLServer",
+      "server": "SUNUCU_IP",
+      "port": null,
+      "database": "VERITABANI_ADI",
+      "username": "KULLANICI",
+      "password_encrypted": "ENV:ERP_PASSWORD",
+      "driver": "ODBC Driver 17 for SQL Server",
+      "auth_type": "SQL",
+      "timeout": 15000,
+      "encrypt": true,
+      "trust_server_certificate": true,
+      "application_name": "OZEN_Briefing",
+      "description": "",
+      "is_active": true
+    }
+  ]
+}

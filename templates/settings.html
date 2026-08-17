@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Ayarlar — ÖZEN Brifing{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>⚙️ Ayarlar</h1>
+    <p>Alıcılar, rapor başlığı ve zamanlama.</p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>⏰ Zamanlama</h2>
+  <p class="muted">Her profil için ayrı gönderim saati belirleyip görevi ayrı ayrı kurabilir veya kaldırabilirsiniz.</p>
+
+  {% if profiles %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Profil</th><th>Gönderim Saati</th><th>Periyot</th><th>Görev Durumu</th><th>İşlemler</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in profiles %}
+      <tr>
+        <td>
+          <strong>{{ p.name }}</strong>
+          <small class="muted">{{ p.id }}</small>
+        </td>
+        <td>
+          <form method="post" action="{{ url_for('profile_save_time', pid=p.id) }}" style="display:flex; gap:6px; align-items:center;">
+            <input type="time" name="send_time" value="{{ p.send_time }}" style="width:130px;">
+            <button class="btn btn-sm" type="submit">Saat Kaydet</button>
+          </form>
+        </td>
+        <td>
+          <form method="post" action="{{ url_for('profile_save_time', pid=p.id) }}" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+            <select name="schedule_frequency" style="width:120px;" onchange="this.form.schedule_week_days.closest('form').querySelectorAll('.weekly-opt,.monthly-opt').forEach(function(el){ el.style.display = (this.value==='weekly' && el.classList.contains('weekly-opt')) || (this.value==='monthly' && el.classList.contains('monthly-opt')) ? 'inline-block' : 'none'; }.bind(this))">
+              <option value="daily" {% if (p.schedule_frequency or 'daily')=='daily' %}selected{% endif %}>Her gün</option>
+              <option value="weekly" {% if p.schedule_frequency=='weekly' %}selected{% endif %}>Haftalık</option>
+              <option value="monthly" {% if p.schedule_frequency=='monthly' %}selected{% endif %}>Aylık</option>
+            </select>
+            <input type="text" name="schedule_week_days" class="weekly-opt" placeholder="PZT,ÇAR" title="Hafta günleri (PZT,SAL,ÇAR,PER,CUM,CMT,PAZ)"
+                   value="{{ p.schedule_week_days|join(',') if p.schedule_week_days else '' }}"
+                   style="width:110px; {{ 'display:inline-block' if (p.schedule_frequency or 'daily')=='weekly' else 'display:none' }}">
+            <input type="number" name="schedule_month_day" class="monthly-opt" min="1" max="31" placeholder="Gün"
+                   value="{{ p.schedule_month_day or 1 }}"
+                   style="width:70px; {{ 'display:inline-block' if p.schedule_frequency=='monthly' else 'display:none' }}">
+            <button class="btn btn-sm" type="submit">💾 Periyot</button>
+          </form>
+        </td>
+        <td>
+          {% if installed_tasks.get(p.id) %}
+          <span class="badge badge-green">Kurulu ({{ installed_tasks[p.id].time }})</span>
+          {% else %}
+          <span class="badge badge-gray">Kurulu Değil</span>
+          {% endif %}
+        </td>
+        <td class="row-actions">
+          <form method="post" action="{{ url_for('schedule_install_profile', pid=p.id) }}" style="display:inline">
+            <button class="btn btn-sm btn-success" type="submit">📅 Kur</button>
+          </form>
+          <form method="post" action="{{ url_for('schedule_uninstall_profile', pid=p.id) }}" style="display:inline"
+                onsubmit="return confirm('{{ p.id }} görevi kaldırılsın mı?');">
+            <button class="btn btn-sm btn-danger" type="submit">🗑 Kaldır</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="form-grid">
+    <div>
+      <label>Gönderim Saati</label>
+      <input type="time" name="send_time" value="{{ cfg.get('send_time', '08:00') }}">
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>📋 Kurulu Görevler</h2>
+  {% if schedule.tasks %}
+  <table class="table">
+    <thead><tr><th>Görev Adı</th><th>Saat</th><th></th></tr></thead>
+    <tbody>
+      {% for t in schedule.tasks %}
+      <tr>
+        <td><code>{{ t.name }}</code></td>
+        <td>{{ t.time or '-' }}</td>
+        <td class="row-actions">
+          {% if t.profile_id %}
+          <form method="post" action="{{ url_for('schedule_uninstall_profile', pid=t.profile_id) }}" style="display:inline"
+                onsubmit="return confirm('Bu görev kaldırılsın mı?');">
+            <button class="btn btn-sm btn-danger" type="submit">🗑 Kaldır</button>
+          </form>
+          {% else %}
+          <span class="muted">genel görev</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Kurulu görev yok.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>⏰ Toplu İşlemler</h2>
+  <div class="row-actions">
+    <form method="post" action="{{ url_for('schedule_install') }}" style="display:inline">
+      <button class="btn btn-success" type="submit">📅 Tümünü Kur</button>
+    </form>
+    <form method="post" action="{{ url_for('schedule_uninstall') }}" style="display:inline"
+          onsubmit="return confirm('Tüm görevler kaldırılsın mı?');">
+      <button class="btn btn-danger" type="submit">🗑 Tümünü Kaldır</button>
+    </form>
+  </div>
+  <p class="muted" style="margin-top:12px">"Tümünü Kur" her aktif profili kendi saatinde ayrı görev olarak oluşturur. Görevler <code>run_briefing.py --profile &lt;id&gt;</code> çalıştırır.</p>
+</div>
+
+<form method="post">
+<div class="card">
+  <h2>📬 Alıcılar</h2>
+  <div class="form-grid">
+    <div>
+      <label>Alıcılar (virgül ile ayırın)</label>
+      <input type="text" name="to" value="{{ cfg.recipients.to|join(', ') }}">
+    </div>
+    <div>
+      <label>CC</label>
+      <input type="text" name="cc" value="{{ cfg.recipients.cc|join(', ') }}">
+    </div>
+    <div>
+      <label>BCC</label>
+      <input type="text" name="bcc" value="{{ cfg.recipients.bcc|join(', ') }}">
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>📄 Rapor</h2>
+  <div class="form-grid">
+    <div>
+      <label>E-posta Konusu</label>
+      <input type="text" name="subject_template" value="{{ cfg.subject_template }}">
+    </div>
+    <div>
+      <label>Rapor Başlığı</label>
+      <input type="text" name="report_title" value="{{ cfg.report_title }}">
+    </div>
+  </div>
+  <div class="check-field">
+    <label class="checkbox"><input type="checkbox" name="send_email" {% if cfg.send_email %}checked{% endif %}> E-posta gönder</label>
+    <label class="checkbox"><input type="checkbox" name="save_output" {% if cfg.save_output %}checked{% endif %}> Çıktıyı kaydet</label>
+  </div>
+</div>
+
+<div class="card">
+  <h2>🔒 Yönetici Girişi</h2>
+  <div class="form-grid">
+    <div>
+      <label>Kullanıcı Adı</label>
+      <input type="text" name="admin_username" value="{{ cfg.admin_username }}">
+    </div>
+    <div>
+      <label>Yeni Şifre <small>(boş bırakılırsa değişmez)</small></label>
+      <input type="password" name="admin_password" autocomplete="new-password">
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>🧠 İçgörü Katmanı (Özet + Anomali)</h2>
+  <p class="muted">Sorgu sonuçlarından otomatik Türkçe özet üretir ve geçmiş kayıtlarla karşılaştırarak sapmaları uyarır. LLM gerektirmez.</p>
+  <div class="check-field">
+    <label class="checkbox"><input type="checkbox" name="insights_enabled" {% if cfg.insights.get('enabled', True) %}checked{% endif %}> İçgörü üretimini aç</label>
+    <label class="checkbox"><input type="checkbox" name="insights_save_history" {% if cfg.insights.get('save_history', True) %}checked{% endif %}> Geçmiş veriyi kaydet (anomali takibi)</label>
+  </div>
+  <div class="form-grid" style="margin-top:12px">
+    <div>
+      <label>Anomali Eşiği (% sapma)</label>
+      <input type="number" name="anomaly_threshold_pct" value="{{ cfg.insights.get('anomaly_threshold_pct', 20) }}" min="1" max="200">
+    </div>
+    <div>
+      <label>Karşılaştırma Gün Sayısı</label>
+      <input type="number" name="anomaly_days_back" value="{{ cfg.insights.get('anomaly_days_back', 7) }}" min="3" max="90">
+    </div>
+  </div>
+</div>
+
+<div class="form-actions">
+  <button class="btn btn-primary" type="submit">💾 Ayarları Kaydet</button>
+</div>
+</form>
+{% endblock %}

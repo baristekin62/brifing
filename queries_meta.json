@@ -1,0 +1,75 @@
+{
+  "queries": [
+    {
+      "file": "02_Anlik_Satis_Ozeti.sql",
+      "title": "Mağaza Ciro (Dün)",
+      "enabled": true,
+      "order": 1,
+      "kpis": [],
+      "summary": {
+        "totals": [
+          "Ciro",
+          "Hedef"
+        ],
+        "ratio_num": "Ciro",
+        "ratio_den": "Hedef",
+        "ratio_label": "Hedef Gerçekleşme"
+      }
+    },
+    {
+      "file": "03_Depo5_StokMaliyet.sql",
+      "title": "Depo Envanter TL",
+      "enabled": true,
+      "order": 2,
+      "summary": {
+        "totals": [
+          "Stok_Degeri_TL"
+        ],
+        "delta": true
+      }
+    },
+    {
+      "file": "04_Kategori_SGS_Ozet.sql",
+      "title": "Kategori SGS Özet",
+      "enabled": true,
+      "order": 3,
+      "summary": {
+        "totals": [
+          "Toplam_SGS"
+        ],
+        "delta": true
+      }
+    },
+    {
+      "file": "05_Magaza_Ciro_Karsilastirma.sql",
+      "title": "Posback Mikro Ciro Karşılaştırma",
+      "enabled": false,
+      "order": 4
+    },
+    {
+      "file": "siparissizmalkabul.sql",
+      "title": "Siparişsiz Mal Kabul",
+      "enabled": true,
+      "order": 5
+    },
+    {
+      "file": "fiş_satır_i_ptali.sql",
+      "title": "Fiş Satır İptali",
+      "enabled": true,
+      "order": 6
+    },
+    {
+      "file": "deposipariskarsilama.sql",
+      "title": "Depo Sipariş Karşılama",
+      "enabled": true,
+      "order": 7,
+      "kpis": [],
+      "summary": {
+        "ratio_num": "TOPLAM TESLİM EDİLEN",
+        "ratio_den": "TOPLAM SİPARİŞ",
+        "ratio_label": "Toplam Karşılama",
+        "delta": true
+      }
+    }
+  ]
+}

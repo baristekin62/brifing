@@ -1,0 +1,22 @@
+# Gizli değerler — asla yüklenmez
+.env
+
+# Yapılandırma dosyaları (şifre/alıcı içerir) — şablon olarak repo'da bulunur
+config.json
+erp_connection.json
+smtp_profiles.json
+briefing_profiles.json
+mail_logs.json
+
+# Çalışma zamanı verileri
+logs/
+output/
+history/
+*.xlsx
+
+# Python
+__pycache__/
+*.pyc
+
+# SQL dosyası yedeği (queries/ altında aslı var)
+KategoriSGS.sql

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}E-posta Geçmişi — ÖZEN Brifing{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>📨 E-posta Teslimat Takibi</h1>
+    <p>Son 500 gönderim kaydı. En yenisi üstte.</p>
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <span class="stat-label">Toplam Kayıt</span>
+    <span class="stat-value">{{ total }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Başarılı</span>
+    <span class="stat-value" style="color:#16a34a">{{ ok }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Hatalı</span>
+    <span class="stat-value" style="color:#dc2626">{{ fail }}</span>
+  </div>
+</div>
+
+<div class="card">
+  {% if entries %}
+  <table class="table">
+    <thead>
+      <tr><th>Tarih</th><th>Profil</th><th>Konu</th><th>Alıcılar</th><th>Durum</th><th>Süre</th><th>Ek</th></tr>
+    </thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td>{{ e.time }}</td>
+        <td>
+          <strong>{{ e.profile_name or e.profile_id }}</strong>
+          <small class="muted">{{ e.profile_id }}</small>
+        </td>
+        <td>{{ e.subject }}</td>
+        <td><small>{{ e.to|join(', ') }}</small></td>
+        <td>
+          {% if e.success %}
+          <span class="badge badge-green">Gönderildi</span>
+          {% else %}
+          <span class="badge badge-red" title="{{ e.error }}">Hata</span>
+          {% endif %}
+        </td>
+        <td>{{ e.latency_ms }} ms</td>
+        <td><small>{{ 'Evet' if e.attachment else '—' }}</small></td>
+      </tr>
+      {% if not e.success and e.error %}
+      <tr>
+        <td colspan="7"><small class="error">{{ e.error }}</small></td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Henüz e-posta gönderimi kaydı yok.</p>
+  {% endif %}
+</div>
+{% endblock %}

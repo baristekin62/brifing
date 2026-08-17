@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}SMTP — ÖZEN Brifing{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>✉️ SMTP Ayarları</h1>
+    <p>E-posta gönderim profilleri: {{ source }}</p>
+  </div>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr><th>Profil</th><th>Sunucu</th><th>Port</th><th>Kullanıcı</th><th>Varsayılan</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for p in profiles %}
+      <tr>
+        <td>{{ p.name }} <small>({{ p.id }})</small></td>
+        <td>{{ p.host }}</td>
+        <td>{{ p.port }}</td>
+        <td>{{ p.username }}</td>
+        <td>{% if p.is_default %}<span class="badge badge-green">Varsayılan</span>{% endif %}</td>
+        <td class="row-actions">
+          <a class="btn btn-sm" href="{{ url_for('smtp_edit', pid=p.id) }}">Düzenle</a>
+          <button class="btn btn-sm" onclick="testSmtp('{{ p.id }}')">Test</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<script>
+function testSmtp(pid) {
+  fetch("/smtp/test/" + pid, { method: "POST" })
+    .then(r => r.json())
+    .then(d => { alert(d.success ? "✅ " + d.message : "❌ " + d.error); });
+}
+</script>
+{% endblock %}

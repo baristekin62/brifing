@@ -1,0 +1,22 @@
+{
+  "profiles": [
+    {
+      "id": "SMTP-PRIMARY",
+      "name": "Kurumsal Mail",
+      "host": "mail.sirket.com",
+      "port": 587,
+      "use_ssl": false,
+      "use_tls": true,
+      "use_auth": true,
+      "username": "ornek@sirket.com",
+      "password_enc": "ENV:SMTP_PASSWORD",
+      "from_address": "ornek@sirket.com",
+      "display_name": "",
+      "reply_to": "",
+      "timeout_sec": 15,
+      "max_size_mb": 25,
+      "is_active": true,
+      "is_default": true
+    }
+  ]
+}

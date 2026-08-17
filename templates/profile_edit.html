@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Yeni Profil' if is_new else 'Profili Düzenle' }} — ÖZEN Brifing{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ '+ Yeni Profil' if is_new else '✏️ Profili Düzenle' }}</h1>
+    <p>Hangi maddelerin kime, ne zaman gönderileceğini seçin.</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('profiles_list') }}">← Geri</a>
+</div>
+
+<form method="post">
+<div class="card">
+  <h2>👤 Profil Bilgileri</h2>
+  <div class="form-grid">
+    <div>
+      <label>Profil Adı</label>
+      <input type="text" name="name" value="{{ p.name if p else '' }}" placeholder="Genel Yönetici Brifingi" required>
+    </div>
+    <div>
+      <label>Profil ID <small>(yeni ise boş bırakılabilir)</small></label>
+      <input type="text" name="id" value="{{ p.id if p else '' }}" {% if p %}readonly{% endif %}>
+    </div>
+    <div>
+      <label>Gönderim Saati</label>
+      <input type="time" name="send_time" value="{{ p.send_time if p else '08:00' }}">
+    </div>
+    <div>
+      <label>Gönderim Periyodu</label>
+      <select name="schedule_frequency" id="scheduleFrequency">
+        <option value="daily" {% if (p.schedule_frequency or 'daily')=='daily' %}selected{% endif %}>Her gün</option>
+        <option value="weekly" {% if p.schedule_frequency=='weekly' %}selected{% endif %}>Haftalık</option>
+        <option value="monthly" {% if p.schedule_frequency=='monthly' %}selected{% endif %}>Aylık</option>
+      </select>
+    </div>
+    <div id="weeklyDays" style="{{ 'display:block' if (p.schedule_frequency or 'daily')=='weekly' else 'display:none' }}">
+      <label>Hafta Günleri <small>(virgülle: PZT,ÇAR)</small></label>
+      <input type="text" name="schedule_week_days" placeholder="PZT,SAL,ÇAR,PER,CUM,CMT,PAZ"
+             value="{{ p.schedule_week_days|join(',') if p.schedule_week_days else '' }}">
+    </div>
+    <div id="monthlyDay" style="{{ 'display:block' if p.schedule_frequency=='monthly' else 'display:none' }}">
+      <label>Ayın Günü <small>(1-31)</small></label>
+      <input type="number" name="schedule_month_day" min="1" max="31" value="{{ p.schedule_month_day or 1 }}">
+    </div>
+    <div class="check-field">
+      <label class="checkbox"><input type="checkbox" name="enabled" {% if (is_new or p.enabled) %}checked{% endif %}> Aktif</label>
+      <label class="checkbox"><input type="checkbox" name="is_default" {% if p and p.is_default %}checked{% endif %}> Varsayılan Yap</label>
+      <label class="checkbox"><input type="checkbox" name="send_email" {% if (is_new or p.send_email) %}checked{% endif %}> E-posta gönder</label>
+      <label class="checkbox"><input type="checkbox" name="save_output" {% if (is_new or p.save_output) %}checked{% endif %}> Çıktı kaydet</label>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>📬 Alıcılar</h2>
+  <div class="form-grid">
+    <div>
+      <label>Alıcılar (virgül ile)</label>
+      <input type="text" name="to" value="{{ (p.to|join(', ')) if p else '' }}" placeholder="mail@firma.com, mail2@firma.com">
+    </div>
+    <div>
+      <label>CC</label>
+      <input type="text" name="cc" value="{{ (p.cc|join(', ')) if p else '' }}">
+    </div>
+    <div>
+      <label>BCC</label>
+      <input type="text" name="bcc" value="{{ (p.bcc|join(', ')) if p else '' }}">
+    </div>
+    <div>
+      <label>E-posta Konusu</label>
+      <input type="text" name="subject_template" value="{{ p.subject_template if p else 'ÖZEN Günlük Brifingi ({date})' }}">
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>🗂 Bu Profile Dahil Edilecek Maddeler</h2>
+  <p class="muted">İşaretlediğiniz sorgular bu profilin brifingine eklenecek.</p>
+  <div class="query-picker">
+    {% for q in queries %}
+    <label class="picker-item">
+      <input type="checkbox" name="query_files" value="{{ q.file }}"
+             {% if p and q.file in p.query_files %}checked{% endif %}>
+      <div>
+        <strong>{{ q.title }}</strong>
+        <small>{{ q.file }}</small>
+      </div>
+    </label>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="form-actions">
+  <button class="btn btn-primary" type="submit">💾 Profili Kaydet</button>
+  <a class="btn btn-secondary" href="{{ url_for('profiles_list') }}">İptal</a>
+</div>
+</form>
+
+<script>
+function toggleSchedule() {
+  var f = document.getElementById('scheduleFrequency');
+  var v = f ? f.value : 'daily';
+  var w = document.getElementById('weeklyDays');
+  var m = document.getElementById('monthlyDay');
+  if (w) w.style.display = v === 'weekly' ? 'block' : 'none';
+  if (m) m.style.display = v === 'monthly' ? 'block' : 'none';
+}
+var sel = document.getElementById('scheduleFrequency');
+if (sel) sel.addEventListener('change', toggleSchedule);
+</script>
+{% endblock %}

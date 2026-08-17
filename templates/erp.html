@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}ERP — ÖZEN Brifing{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>🖥 ERP Bağlantıları</h1>
+    <p>Mikro ERP veritabanı profilleri: {{ source }}</p>
+  </div>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr><th>Profil</th><th>Sunucu</th><th>Veritabanı</th><th>Kullanıcı</th><th>Aktif</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for p in profiles %}
+      <tr>
+        <td>{{ p.profile_name }} <small>({{ p.profile_id }})</small></td>
+        <td>{{ p.server }}</td>
+        <td>{{ p.database }}</td>
+        <td>{{ p.username }}</td>
+        <td>{% if p.is_active or p.profile_id == active_id %}<span class="badge badge-green">Aktif</span>{% endif %}</td>
+        <td class="row-actions">
+          <a class="btn btn-sm" href="{{ url_for('erp_edit', pid=p.profile_id) }}">Düzenle</a>
+          <button class="btn btn-sm" onclick="testErp('{{ p.profile_id }}')">Test</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<script>
+function testErp(pid) {
+  fetch("/erp/test/" + pid, { method: "POST" })
+    .then(r => r.json())
+    .then(d => { alert(d.success ? "✅ " + d.message : "❌ " + d.error); });
+}
+</script>
+{% endblock %}

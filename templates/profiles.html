@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Brifing Profilleri — ÖZEN Brifing{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>👥 Brifing Profilleri</h1>
+    <p>Her alıcı grubuna farklı maddeler ve saatlerde gönderim yapın.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('profile_new') }}">+ Yeni Profil</a>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Profil</th><th>Alıcılar</th><th>Sorgu Sayısı</th><th>Saat</th><th>Durum</th><th>İşlemler</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in profiles %}
+      <tr>
+        <td>
+          <strong>{{ p.name }}</strong>
+          <small class="muted">{{ p.id }}</small>
+          {% if p.is_default %}<span class="badge badge-blue">Varsayılan</span>{% endif %}
+        </td>
+        <td class="small-cell">{{ p.to|join(', ') }}</td>
+        <td>{{ p.query_files|length }}</td>
+        <td>{{ p.send_time }}</td>
+        <td>{% if p.enabled %}<span class="badge badge-green">Aktif</span>{% else %}<span class="badge badge-gray">Pasif</span>{% endif %}</td>
+        <td class="row-actions">
+          <a class="btn btn-sm" href="{{ url_for('profile_edit', pid=p.id) }}">Düzenle</a>
+          <form method="post" action="{{ url_for('profile_run', pid=p.id) }}" style="display:inline">
+            <button class="btn btn-sm btn-primary" type="submit">▶ Çalıştır</button>
+          </form>
+          <form method="post" action="{{ url_for('profile_delete', pid=p.id) }}" style="display:inline"
+                onsubmit="return confirm('Bu profil silinsin mi?');">
+            <button class="btn btn-sm btn-danger">Sil</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
