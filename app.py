@@ -13,9 +13,11 @@ D:\\BRIFING içindeki tüm brifing yapılandırmasını yönetir:
 import base64
 import json
 import os
+import random
 import re
 import subprocess
 import sys
+import time
 from functools import wraps
 from pathlib import Path
 
@@ -154,11 +156,20 @@ def _encode_secret(value: str) -> str:
 # ─── Güvenlik ─────────────────────────────────────────────────────────────
 
 # Master şifre (19811203) — SHA-256 hash olarak koda gömülüdür.
-# Kullanıcı adı config.json'daki admin_username'dir; şifre bu hash ile doğrulanır.
+# Kullanıcı adı config.json'daki admin_username'dir.
+# Öncelik: secrets.dat'teki ADMIN_PASSWORD (kullanıcı şifre sıfırlarsa bu geçerli olur);
+# yoksa gömülü master hash ile doğrulanır.
 MASTER_PASSWORD_HASH = "38e73cc04c39de52ecec6135ffd1e8578cebe3c92e6e24b888863d2581de7e92"
+
+# Tek kullanımlık şifreler (OTP) bellekte tutulur: {otp: {"email": str, "exp": ts}}
+_OTP_STORE = {}
+_OTP_TTL_SEC = 600  # 10 dakika
 
 
 def _check_master(password: str) -> bool:
+    stored = rb.load_secrets().get("ADMIN_PASSWORD", "")
+    if stored:
+        return (password or "") == stored
     import hashlib
     return hashlib.sha256((password or "").encode("utf-8")).hexdigest() == MASTER_PASSWORD_HASH
 
@@ -180,9 +191,96 @@ def login():
         p = request.form.get("password", "")
         if u == cfg.get("admin_username", "admin") and _check_master(p):
             session["admin_logged_in"] = True
+            session.pop("reset_email", None)
+            session.pop("otp_verified", None)
             return redirect(url_for("index"))
         flash("Kullanıcı adı veya şifre hatalı!", "danger")
     return render_template("login.html")
+
+
+def _registered_admin_email(cfg: dict) -> str:
+    """Şifre sıfırlama için kayıtlı admin e-postası."""
+    return (cfg.get("admin_email") or "").strip()
+
+
+@app.route("/forgot", methods=["GET", "POST"])
+def forgot():
+    """Şifremi unuttum — kayıtlı mail varsa tek kullanımlık şifre gönderir."""
+    cfg = load_config()
+    registered = _registered_admin_email(cfg)
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        if not registered or email != registered.lower():
+            flash("Bu e-posta adresi kayıtlı değil.", "danger")
+            return render_template("forgot.html")
+        otp = f"{random.randint(0, 999999):06d}"
+        _OTP_STORE[otp] = {"email": registered, "exp": time.time() + _OTP_TTL_SEC}
+        try:
+            profile = rb.get_smtp_profile(cfg)
+            body = (
+                "<h2>ÖZEN Brifing — Şifre Sıfırlama</h2>"
+                "<p>Şifrenizi sıfırlamak için tek kullanımlık kodunuz:</p>"
+                f"<p style='font-size:28px;font-weight:700;letter-spacing:4px'>{otp}</p>"
+                "<p>Bu kod 10 dakika geçerlidir. Kodu web sayfasına girin ve yeni şifrenizi belirleyin.</p>"
+            )
+            result = rb.send_email_via_smtp(profile, [registered], "ÖZEN Brifing — Şifre Sıfırlama Kodu", body)
+            if not result.get("success"):
+                raise RuntimeError(str(result.get("error", "SMTP hatası")))
+        except Exception as e:
+            _OTP_STORE.pop(otp, None)
+            flash(f"Kod gönderilemedi: {e}", "danger")
+            return render_template("forgot.html")
+        session["reset_email"] = registered
+        flash("Tek kullanımlık kod e-posta adresinize gönderildi.", "success")
+        return redirect(url_for("verify_otp"))
+    return render_template("forgot.html")
+
+
+@app.route("/verify_otp", methods=["GET", "POST"])
+def verify_otp():
+    """Web'e girilen kodu doğrular; doğruysa yeni şifre ekranına geçirir."""
+    cfg = load_config()
+    email = session.get("reset_email") or ""
+    if not email:
+        return redirect(url_for("forgot"))
+    if request.method == "POST":
+        otp = (request.form.get("otp") or "").strip()
+        rec = _OTP_STORE.get(otp)
+        if not rec or rec.get("email", "").lower() != email.lower():
+            flash("Kod hatalı veya süresi dolmuş.", "danger")
+            return render_template("verify_otp.html")
+        if time.time() > rec.get("exp", 0):
+            _OTP_STORE.pop(otp, None)
+            flash("Kodun süresi doldu. Yeni kod isteyin.", "danger")
+            return redirect(url_for("forgot"))
+        _OTP_STORE.pop(otp, None)
+        session["otp_verified"] = True
+        return redirect(url_for("reset_password"))
+    return render_template("verify_otp.html")
+
+
+@app.route("/reset_password", methods=["GET", "POST"])
+def reset_password():
+    """OTP doğrulanmışsa yeni şifreyi kaydeder."""
+    cfg = load_config()
+    if not session.get("otp_verified"):
+        return redirect(url_for("forgot"))
+    if request.method == "POST":
+        p1 = request.form.get("new_password", "")
+        p2 = request.form.get("new_password2", "")
+        if len(p1) < 4:
+            flash("Yeni şifre en az 4 karakter olmalı.", "danger")
+        elif p1 != p2:
+            flash("Şifreler eşleşmiyor.", "danger")
+        else:
+            secrets = rb.load_secrets()
+            secrets["ADMIN_PASSWORD"] = p1
+            rb.save_secrets(secrets)
+            session.pop("reset_email", None)
+            session.pop("otp_verified", None)
+            flash("Şifreniz güncellendi. Yeni şifreyle giriş yapın.", "success")
+            return redirect(url_for("login"))
+    return render_template("reset_password.html")
 
 
 @app.route("/logout")
@@ -556,6 +654,9 @@ def settings():
         new_user = request.form.get("admin_username", "").strip()
         if new_user:
             cfg["admin_username"] = new_user
+        new_email = request.form.get("admin_email", "").strip()
+        if new_email:
+            cfg["admin_email"] = new_email
         save_config(cfg)
         flash("Ayarlar kaydedildi.", "success")
         return redirect(url_for("settings"))

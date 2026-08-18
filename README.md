@@ -24,7 +24,7 @@ paketler.bat
 
 Şifreler **Windows DPAPI** ile şifrelenerek `secrets.dat` dosyasında tutulur — yalnızca o bilgisayarda çözülebilir. Panelde **🔐 Şifre Yönetimi** sayfasından girilir.
 
-Panel girişi **master şifre** (19811203) ile yapılır — hash olarak kodda saklanır, düz metin hiçbir yerde bulunmaz.
+Panel girişi **master şifre** (19811203) ile yapılır — hash olarak kodda saklanır, düz metin hiçbir yerde bulunmaz. Giriş ekranındaki **"Şifremi Unuttum?"** linkiyle kayıtlı e-postaya tek kullanımlık kod (OTP) gönderilip şifre sıfırlanabilir; yeni şifre `secrets.dat`'e şifrelenerek yazılır.
 
 Yeni PC'ye taşırken: `paketler.bat` çalıştırın → panelle girin → 🔐 Şifre Yönetimi'nden şifreleri yeniden girin.
 

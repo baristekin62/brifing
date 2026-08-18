@@ -17,6 +17,7 @@
   "send_email": true,
   "save_output": true,
   "admin_username": "admin",
+  "admin_email": "ornek@ozengross.com",
   "web_port": 8080,
   "send_time": "08:00",
   "send_time_enabled": true,

@@ -165,8 +165,12 @@
       <label>Kullanıcı Adı</label>
       <input type="text" name="admin_username" value="{{ cfg.admin_username }}">
     </div>
+    <div>
+      <label>Şifre Sıfırlama E-postası <small>(şifremi unuttum kodu bu adrese gider)</small></label>
+      <input type="email" name="admin_email" value="{{ cfg.admin_email }}">
+    </div>
   </div>
-  <p class="muted">Şifreler <a href="{{ url_for('secrets_page') }}">🔐 Şifre Yönetimi</a> sayfasından girilir ve bu bilgisayarda şifrelenerek saklanır.</p>
+  <p class="muted">Şifreler <a href="{{ url_for('secrets_page') }}">🔐 Şifre Yönetimi</a> sayfasından girilir ve bu bilgisayarda şifrelenerek saklanır. Şifre sıfırlama akışı giriş ekranındaki "Şifremi Unuttum" linkinden başlatılır.</p>
 </div>
 
 <div class="card">

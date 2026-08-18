@@ -2,15 +2,15 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<title>Giriş — ÖZEN Brifing Paneli</title>
+<title>Şifremi Unuttum — ÖZEN Brifing Paneli</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="login-body">
 <div class="login-card">
   <div class="login-brand">
     <span class="brand-dot"></span>
-    <h1>ÖZEN Brifing</h1>
-    <p>Yönetim Paneli Girişi</p>
+    <h1>Şifremi Unuttum</h1>
+    <p>Kayıtlı e-posta adresinize tek kullanımlık kod göndereceğiz</p>
   </div>
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, msg in messages %}
@@ -18,14 +18,12 @@
     {% endfor %}
   {% endwith %}
   <form method="post">
-    <label>Kullanıcı Adı</label>
-    <input type="text" name="username" required autofocus>
-    <label>Şifre</label>
-    <input type="password" name="password" required>
-    <button type="submit">Giriş Yap</button>
+    <label>Kayıtlı E-posta Adresi</label>
+    <input type="email" name="email" required autofocus placeholder="ornek@ozengross.com">
+    <button type="submit">Kod Gönder</button>
   </form>
   <p style="text-align:center;margin-top:16px">
-    <a href="{{ url_for('forgot') }}" style="color:#1d4ed8;font-size:13px">Şifremi Unuttum?</a>
+    <a href="{{ url_for('login') }}" style="color:#1d4ed8;font-size:13px">← Girişe Dön</a>
   </p>
 </div>
 </body>
