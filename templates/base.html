@@ -22,6 +22,7 @@
     <a href="{{ url_for('queries_list') }}" class="{{ 'active' if request.endpoint in ['queries_list','query_new','query_edit'] }}">🗂 Sorgular</a>
     <a href="{{ url_for('smtp_list') }}" class="{{ 'active' if request.endpoint in ['smtp_list','smtp_edit'] }}">✉️ SMTP</a>
     <a href="{{ url_for('erp_list') }}" class="{{ 'active' if request.endpoint in ['erp_list','erp_edit'] }}">🖥 ERP Bağlantı</a>
+    <a href="{{ url_for('secrets_page') }}" class="{{ 'active' if request.endpoint == 'secrets_page' }}">🔐 Şifre Yönetimi</a>
     <a href="{{ url_for('maillog') }}" class="{{ 'active' if request.endpoint == 'maillog' }}">📨 E-posta Geçmişi</a>
     <a href="{{ url_for('insights_history') }}" class="{{ 'active' if request.endpoint == 'insights_history' }}">🧠 İçgörü Geçmişi</a>
     <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}">⚙️ Ayarlar</a>

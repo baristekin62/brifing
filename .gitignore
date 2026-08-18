@@ -1,5 +1,6 @@
 # Gizli değerler — asla yüklenmez
 .env
+secrets.dat
 
 # Yapılandırma dosyaları (şifre/alıcı içerir) — şablon olarak repo'da bulunur
 config.json

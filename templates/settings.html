@@ -165,11 +165,8 @@
       <label>Kullanıcı Adı</label>
       <input type="text" name="admin_username" value="{{ cfg.admin_username }}">
     </div>
-    <div>
-      <label>Yeni Şifre <small>(boş bırakılırsa değişmez)</small></label>
-      <input type="password" name="admin_password" autocomplete="new-password">
-    </div>
   </div>
+  <p class="muted">Şifreler <a href="{{ url_for('secrets_page') }}">🔐 Şifre Yönetimi</a> sayfasından girilir ve bu bilgisayarda şifrelenerek saklanır.</p>
 </div>
 
 <div class="card">

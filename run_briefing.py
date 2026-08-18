@@ -75,13 +75,95 @@ def _load_env() -> dict:
     return env
 
 
+# ─── Gizli değer deposu (Windows DPAPI) ────────────────────────────────────
+
+
+def _dpapi_protect(data: bytes) -> bytes:
+    """Windows DPAPI ile veriyi şifreler (o PC'nin kullanıcısına bağlı)."""
+    import ctypes
+    from ctypes import wintypes
+
+    class DATA_BLOB(ctypes.Structure):
+        _fields_ = [("cbData", wintypes.DWORD), ("pbData", ctypes.POINTER(ctypes.c_char))]
+
+    buf = ctypes.create_string_buffer(data, len(data))
+    blob_in = DATA_BLOB(len(data), ctypes.cast(buf, ctypes.POINTER(ctypes.c_char)))
+    blob_out = DATA_BLOB()
+    if not ctypes.windll.crypt32.CryptProtectData(
+            ctypes.byref(blob_in), None, None, None, None, 0, ctypes.byref(blob_out)):
+        raise OSError("DPAPI şifreleme başarısız")
+    try:
+        return ctypes.string_at(blob_out.pbData, blob_out.cbData)
+    finally:
+        ctypes.windll.kernel32.LocalFree(blob_out.pbData)
+
+
+def _dpapi_unprotect(blob: bytes) -> bytes:
+    """Windows DPAPI ile şifreli veriyi çözer."""
+    import ctypes
+    from ctypes import wintypes
+
+    class DATA_BLOB(ctypes.Structure):
+        _fields_ = [("cbData", wintypes.DWORD), ("pbData", ctypes.POINTER(ctypes.c_char))]
+
+    buf = ctypes.create_string_buffer(blob, len(blob))
+    blob_in = DATA_BLOB(len(blob), ctypes.cast(buf, ctypes.POINTER(ctypes.c_char)))
+    blob_out = DATA_BLOB()
+    if not ctypes.windll.crypt32.CryptUnprotectData(
+            ctypes.byref(blob_in), None, None, None, None, 0, ctypes.byref(blob_out)):
+        raise OSError("DPAPI çözme başarısız")
+    try:
+        return ctypes.string_at(blob_out.pbData, blob_out.cbData)
+    finally:
+        ctypes.windll.kernel32.LocalFree(blob_out.pbData)
+
+
+SECRETS_FILE = BASE_DIR / "secrets.dat"
+
+
+def load_secrets() -> dict:
+    """secrets.dat'teki DPAPI şifreli değerleri çözer: {anahtar: düz metin}."""
+    if not SECRETS_FILE.exists():
+        return {}
+    try:
+        data = json.loads(SECRETS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    out = {}
+    for k, v in data.items():
+        try:
+            out[k] = _dpapi_unprotect(base64.b64decode(v)).decode("utf-8")
+        except Exception:
+            continue
+    return out
+
+
+def save_secrets(values: dict) -> Path:
+    """Değerleri DPAPI ile şifreleyip secrets.dat'e yazar. Boş değerler atlanır."""
+    data = {}
+    for k, v in values.items():
+        if v:
+            data[k] = base64.b64encode(_dpapi_protect(str(v).encode("utf-8"))).decode("ascii")
+    SECRETS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    return SECRETS_FILE
+
+
+def _resolve_secret(name: str) -> str:
+    """Gizli değeri bulur: önce secrets.dat (DPAPI), sonra .env, sonra ortam değişkeni."""
+    if not name:
+        return ""
+    v = load_secrets().get(name)
+    if v is not None:
+        return v
+    return _load_env().get(name, os.environ.get(name, ""))
+
+
 def _decode_secret(value: str) -> str:
-    """Şifre şemasını çözer: 'ENV:<VAR>' .env'den, 'ENC:<base64>' veya düz metin."""
+    """Şifre şemasını çözer: 'ENV:<VAR>' gizli depodan, 'ENC:<base64>' veya düz metin."""
     if not value:
         return ""
     if isinstance(value, str) and value.startswith("ENV:"):
-        name = value[4:].strip()
-        return _load_env().get(name, os.environ.get(name, ""))
+        return _resolve_secret(value[4:].strip())
     if isinstance(value, str) and value.startswith("ENC:"):
         try:
             return base64.b64decode(value[4:].encode("utf-8")).decode("utf-8")

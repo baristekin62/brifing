@@ -20,15 +20,13 @@ paketler.bat
 2. ODBC Driver 18 kontrol/otomatik kurulum
 3. `.env` yoksa durur ve şablon dosyaları `config.json`, `erp_connection.json`, `smtp_profiles.json` olarak kopyalar
 
-### `.env` dosyası (gizli değerler — git'e yüklenmez)
+### Şifreler (güvenli saklama)
 
-```
-ADMIN_PASSWORD=panel_giris_sifresi
-ERP_PASSWORD=erp_sifresi
-SMTP_PASSWORD=smtp_sifresi
-```
+Şifreler **Windows DPAPI** ile şifrelenerek `secrets.dat` dosyasında tutulur — yalnızca o bilgisayarda çözülebilir. Panelde **🔐 Şifre Yönetimi** sayfasından girilir.
 
-Config dosyalarındaki şifre alanları `ENV:ADMIN_PASSWORD` / `ENV:ERP_PASSWORD` / `ENV:SMTP_PASSWORD` referanslarıyla `.env`'den okunur.
+Panel girişi **master şifre** (19811203) ile yapılır — hash olarak kodda saklanır, düz metin hiçbir yerde bulunmaz.
+
+Yeni PC'ye taşırken: `paketler.bat` çalıştırın → panelle girin → 🔐 Şifre Yönetimi'nden şifreleri yeniden girin.
 
 ## Çalıştırma
 
@@ -49,7 +47,7 @@ D:\BRIFING
 ├── config.json               # (gizli) ana ayarlar — şablon: config.example.json
 ├── erp_connection.json       # (gizli) ERP bağlantı — şablon: erp_connection.example.json
 ├── smtp_profiles.json        # (gizli) SMTP profiller — şablon: smtp_profiles.example.json
-├── .env                      # (gizli) şifreler
+├── secrets.dat               # (gizli) DPAPI ile şifreli şifreler
 ├── queries/                  # SQL sorguları
 ├── queries_meta.json         # sorgu sırası/başlık/KPI/özet yapılandırması
 ├── briefing_profiles.json    # (gizli) profiller

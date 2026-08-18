@@ -134,8 +134,7 @@ def _decode_secret(value: str) -> str:
     if not value:
         return ""
     if isinstance(value, str) and value.startswith("ENV:"):
-        name = value[4:].strip()
-        return rb._load_env().get(name, os.environ.get(name, ""))
+        return rb._resolve_secret(value[4:].strip())
     if isinstance(value, str) and value.startswith("ENC:"):
         try:
             return base64.b64decode(value[4:].encode("utf-8")).decode("utf-8")
@@ -154,6 +153,15 @@ def _encode_secret(value: str) -> str:
 
 # ─── Güvenlik ─────────────────────────────────────────────────────────────
 
+# Master şifre (19811203) — SHA-256 hash olarak koda gömülüdür.
+# Kullanıcı adı config.json'daki admin_username'dir; şifre bu hash ile doğrulanır.
+MASTER_PASSWORD_HASH = "38e73cc04c39de52ecec6135ffd1e8578cebe3c92e6e24b888863d2581de7e92"
+
+
+def _check_master(password: str) -> bool:
+    import hashlib
+    return hashlib.sha256((password or "").encode("utf-8")).hexdigest() == MASTER_PASSWORD_HASH
+
 
 def login_required(f):
     @wraps(f)
@@ -170,7 +178,7 @@ def login():
     if request.method == "POST":
         u = request.form.get("username", "")
         p = request.form.get("password", "")
-        if u == cfg.get("admin_username", "admin") and p == _decode_secret(cfg.get("admin_password", "admin123")):
+        if u == cfg.get("admin_username", "admin") and _check_master(p):
             session["admin_logged_in"] = True
             return redirect(url_for("index"))
         flash("Kullanıcı adı veya şifre hatalı!", "danger")
@@ -546,11 +554,8 @@ def settings():
             ins["anomaly_days_back"] = 7
         # Güvenlik
         new_user = request.form.get("admin_username", "").strip()
-        new_pass = request.form.get("admin_password", "").strip()
         if new_user:
             cfg["admin_username"] = new_user
-        if new_pass:
-            cfg["admin_password"] = new_pass
         save_config(cfg)
         flash("Ayarlar kaydedildi.", "success")
         return redirect(url_for("settings"))
@@ -1059,6 +1064,27 @@ def report_view_page(filename):
         flash("Rapor bulunamadı.", "danger")
         return redirect(url_for("index"))
     return render_template("report_view.html", filename=filename)
+
+
+@app.route("/secrets", methods=["GET", "POST"])
+@login_required
+def secrets_page():
+    """Gizli değer yönetimi: ERP, SMTP şifreleri DPAPI ile secrets.dat'te saklanır."""
+    if request.method == "POST":
+        current = rb.load_secrets()
+        current.update({
+            "ADMIN_PASSWORD": request.form.get("admin_password", "").strip(),
+            "ERP_PASSWORD": request.form.get("erp_password", "").strip(),
+            "SMTP_PASSWORD": request.form.get("smtp_password", "").strip(),
+        })
+        rb.save_secrets(current)
+        flash("Gizli değerler bu bilgisayarda şifrelenerek kaydedildi.", "success")
+        return redirect(url_for("secrets_page"))
+    secrets = rb.load_secrets()
+    return render_template("secrets.html",
+                           admin_password=secrets.get("ADMIN_PASSWORD", ""),
+                           erp_password=secrets.get("ERP_PASSWORD", ""),
+                           smtp_password=secrets.get("SMTP_PASSWORD", ""))
 
 
 if __name__ == "__main__":
