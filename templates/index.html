@@ -7,6 +7,7 @@
     <p>Günlük yönetici brifingini yönetin, çalıştırın ve görüntüleyin.</p>
   </div>
   <div class="head-actions">
+    {% if session.get('admin_logged_in') %}
     <form method="post" action="{{ url_for('run_briefing_now') }}" style="display:inline">
       <input type="hidden" name="send_email" value="off">
       <button class="btn btn-secondary" type="submit">▶ Önizle (mail yok)</button>
@@ -15,6 +16,7 @@
       <input type="hidden" name="send_email" value="on">
       <button class="btn btn-primary" type="submit">🚀 Çalıştır + Gönder</button>
     </form>
+    {% endif %}
   </div>
 </div>
 
@@ -54,7 +56,9 @@
           {% else %}<span class="badge badge-gray">Pasif</span>{% endif %}
         </td>
         <td class="row-actions">
+          {% if session.get('admin_logged_in') %}
           <a class="btn btn-sm" href="{{ url_for('query_edit', filename=q.file) }}">Düzenle</a>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}

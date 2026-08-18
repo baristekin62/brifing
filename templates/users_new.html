@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Kullanıcı Ekle — ÖZEN Brifing{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>➕ Kullanıcı Ekle</h1>
+    <p>Ad, soyad ve e-posta girin. Kişiye davet kodu gönderilir; o kişi kodu girip kendi şifresini oluşturur.</p>
+  </div>
+</div>
+
+<div class="card">
+  <form method="post">
+    <div class="form-grid">
+      <div>
+        <label>Ad</label>
+        <input type="text" name="ad" required autofocus>
+      </div>
+      <div>
+        <label>Soyad</label>
+        <input type="text" name="soyad">
+      </div>
+      <div>
+        <label>E-posta Adresi</label>
+        <input type="email" name="email" required placeholder="ornek@ozengross.com">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Davet Gönder</button>
+      <a class="btn" href="{{ url_for('users_list') }}">İptal</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

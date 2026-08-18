@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Kayıt Ol — ÖZEN Brifing Paneli</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="login-body">
+<div class="login-card">
+  <div class="login-brand">
+    <span class="brand-dot"></span>
+    <h1>Kayıt Ol</h1>
+    <p>E-postanıza gelen davet kodunu girip şifrenizi oluşturun</p>
+  </div>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, msg in messages %}
+      <div class="flash flash-{{ category }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+  <form method="post">
+    <label>E-posta Adresi</label>
+    <input type="email" name="email" required autofocus placeholder="ornek@ozengross.com">
+    <label>Davet Kodu</label>
+    <input type="text" name="kod" required maxlength="6" inputmode="numeric" placeholder="123456">
+    <label>Yeni Şifre</label>
+    <input type="password" name="new_password" required autocomplete="new-password">
+    <label>Yeni Şifre (Tekrar)</label>
+    <input type="password" name="new_password2" required autocomplete="new-password">
+    <button type="submit">Hesabımı Oluştur</button>
+  </form>
+  <p style="text-align:center;margin-top:16px">
+    <a href="{{ url_for('login') }}" style="color:#1d4ed8;font-size:13px">← Girişe Dön</a>
+  </p>
+</div>
+</body>
+</html>

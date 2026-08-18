@@ -20,6 +20,10 @@ paketler.bat
 2. ODBC Driver 18 kontrol/otomatik kurulum
 3. `.env` yoksa durur ve şablon dosyaları `config.json`, `erp_connection.json`, `smtp_profiles.json` olarak kopyalar
 
+### Kullanıcılar (davet sistemi)
+
+Admin, **👤 Kullanıcılar → Kullanıcı Ekle** ile ad/soyad/e-posta girer; kişiye **davet kodu** maili gider. Kişi panele girip kodu + kendi şifresini oluşturur, ardından e-posta + şifreyle giriş yapar. Davet edilen kullanıcılar yalnızca raporları görüntüleyebilir (yönetim menülerine erişemez). Kayıtlar `users.json`'da saklanır (şifreler salt ile hash'lenir).
+
 ### Şifreler (güvenli saklama)
 
 Şifreler **Windows DPAPI** ile şifrelenerek `secrets.dat` dosyasında tutulur — yalnızca o bilgisayarda çözülebilir. Panelde **🔐 Şifre Yönetimi** sayfasından girilir.

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Kullanıcılar — ÖZEN Brifing{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>👥 Kullanıcılar</h1>
+    <p>Davet ettiğiniz kişiler burada listelenir. Kayıt ettiğiniz adrese davet kodu gider; kişi kodu girip kendi şifresini oluşturur.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('users_new') }}">➕ Kullanıcı Ekle</a>
+</div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>Ad Soyad</th><th>E-posta</th><th>Durum</th><th>Kayıt Tarihi</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.ad }} {{ u.soyad }}</td>
+        <td>{{ u.email }}</td>
+        <td>
+          {% if u.durum == 'aktif' %}<span class="badge badge-green">Aktif</span>
+          {% else %}<span class="badge badge-gray">Davetli</span>{% endif %}
+        </td>
+        <td>{{ u.olusturulma | datetime_tr }}</td>
+        <td style="text-align:right">
+          <form method="post" action="{{ url_for('users_delete', email=u.email) }}" onsubmit="return confirm('{{ u.ad }} {{ u.soyad }} kaldırılsın mı?');">
+            <button class="btn btn-danger btn-sm" type="submit">Sil</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">Henüz kullanıcı yok. "Kullanıcı Ekle" ile davet gönderin.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -31,6 +31,7 @@ CONFIG_FILE = BASE_DIR / "config.json"
 META_FILE = BASE_DIR / "queries_meta.json"
 QUERIES_DIR = BASE_DIR / "queries"
 OUTPUT_DIR = BASE_DIR / "output"
+USERS_FILE = BASE_DIR / "users.json"
 
 app = Flask(__name__)
 app.secret_key = "OZEN-BRIFING-SECRET-KEY-CHANGE-ME"
@@ -166,6 +167,34 @@ _OTP_STORE = {}
 _OTP_TTL_SEC = 600  # 10 dakika
 
 
+# ─── Kullanıcılar (davet sistemi) ─────────────────────────────────────────
+# users.json: {"users": [{"email", "ad", "soyad", "role", "durum", "davet_kodu",
+#                         "davet_exp", "sifre_hash", "olusturulma"}]}
+# Admin (config admin_username + master şifre) ayrıdır; davet edilenler "kullanici" rolündedir.
+
+
+def load_users() -> dict:
+    if not USERS_FILE.exists():
+        return {"users": []}
+    try:
+        return json.loads(USERS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {"users": []}
+
+
+def save_users(data: dict) -> None:
+    USERS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def _hash_pw(password: str, salt: str) -> str:
+    import hashlib
+    return hashlib.sha256((salt + "|" + password).encode("utf-8")).hexdigest()
+
+
+def _new_salt() -> str:
+    return os.urandom(16).hex()
+
+
 def _check_master(password: str) -> bool:
     stored = rb.load_secrets().get("ADMIN_PASSWORD", "")
     if stored:
@@ -175,6 +204,16 @@ def _check_master(password: str) -> bool:
 
 
 def login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not (session.get("admin_logged_in") or session.get("user_logged_in")):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def admin_required(f):
+    """Yalnızca admin (master) kullanıcısı erişebilir."""
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not session.get("admin_logged_in"):
@@ -187,13 +226,24 @@ def login_required(f):
 def login():
     cfg = load_config()
     if request.method == "POST":
-        u = request.form.get("username", "")
+        u = request.form.get("username", "").strip()
         p = request.form.get("password", "")
+        # 1) Admin girişi (kullanıcı adı + master şifre)
         if u == cfg.get("admin_username", "admin") and _check_master(p):
+            session.clear()
             session["admin_logged_in"] = True
-            session.pop("reset_email", None)
-            session.pop("otp_verified", None)
             return redirect(url_for("index"))
+        # 2) Davet edilen kullanıcı girişi (e-posta + kendi şifresi)
+        users = load_users().get("users", [])
+        for usr in users:
+            if usr.get("email", "").strip().lower() == u.lower() and usr.get("durum") == "aktif":
+                if _hash_pw(p, usr.get("salt", "")) == usr.get("sifre_hash", ""):
+                    session.clear()
+                    session["user_logged_in"] = True
+                    session["user_email"] = usr.get("email")
+                    session["user_ad"] = usr.get("ad", "")
+                    session["user_soyad"] = usr.get("soyad", "")
+                    return redirect(url_for("index"))
         flash("Kullanıcı adı veya şifre hatalı!", "danger")
     return render_template("login.html")
 
@@ -289,6 +339,126 @@ def logout():
     return redirect(url_for("login"))
 
 
+# ─── Kullanıcı yönetimi (davet sistemi) ─────────────────────────────────────
+
+
+def _send_invite_mail(email: str, ad: str, soyad: str, kod: str) -> str:
+    """Davet e-postası gönderir; başarılıysa '' döner, hata mesajı döner."""
+    cfg = load_config()
+    profile = rb.get_smtp_profile(cfg)
+    body = (
+        "<h2>ÖZEN Brifing Paneli — Kayıt Daveti</h2>"
+        f"<p>Merhaba <strong>{ad} {soyad}</strong>,</p>"
+        "<p>ÖZEN Brifing paneline kayıt olmanız için davet edildiniz.</p>"
+        "<p>Web panelinde <strong>Kayıt Ol</strong> sayfasına giderek aşağıdaki kodu ve "
+        "yeni şifrenizi girin:</p>"
+        f"<p style='font-size:26px;font-weight:700;letter-spacing:4px'>{kod}</p>"
+        "<p>Bu kod 24 saat geçerlidir. Kayıt işleminiz tamamlandıktan sonra "
+        "e-posta adresiniz ve şifrenizle giriş yapabilirsiniz.</p>"
+    )
+    result = rb.send_email_via_smtp(profile, [email], "ÖZEN Brifing Paneli — Kayıt Daveti", body)
+    if not result.get("success"):
+        return str(result.get("error", "SMTP hatası"))
+    return ""
+
+
+@app.route("/users")
+@admin_required
+def users_list():
+    data = load_users()
+    return render_template("users.html", users=data.get("users", []))
+
+
+@app.route("/users/new", methods=["GET", "POST"])
+@admin_required
+def users_new():
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        ad = (request.form.get("ad") or "").strip()
+        soyad = (request.form.get("soyad") or "").strip()
+        if not email or "@" not in email:
+            flash("Geçerli bir e-posta adresi girin.", "danger")
+            return render_template("users_new.html")
+        if not ad:
+            flash("Ad alanı zorunludur.", "danger")
+            return render_template("users_new.html")
+        data = load_users()
+        for usr in data.get("users", []):
+            if usr.get("email", "").lower() == email:
+                flash("Bu e-posta adresi zaten kayıtlı.", "danger")
+                return render_template("users_new.html")
+        kod = f"{random.randint(0, 999999):06d}"
+        hata = _send_invite_mail(email, ad, soyad, kod)
+        if hata:
+            flash(f"Davet e-postası gönderilemedi: {hata}", "danger")
+            return render_template("users_new.html")
+        data.setdefault("users", []).append({
+            "email": email,
+            "ad": ad,
+            "soyad": soyad,
+            "rol": "kullanici",
+            "durum": "davetli",
+            "davet_kodu": kod,
+            "davet_exp": int(time.time()) + 24 * 3600,
+            "salt": _new_salt(),
+            "sifre_hash": "",
+            "olusturulma": int(time.time()),
+        })
+        save_users(data)
+        flash(f"{email} adresine davet kodu gönderildi.", "success")
+        return redirect(url_for("users_list"))
+    return render_template("users_new.html")
+
+
+@app.route("/users/delete/<email>", methods=["POST"])
+@admin_required
+def users_delete(email):
+    data = load_users()
+    data["users"] = [u for u in data.get("users", []) if u.get("email", "").lower() != email.lower()]
+    save_users(data)
+    flash("Kullanıcı kaldırıldı.", "success")
+    return redirect(url_for("users_list"))
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    """Davet edilen kişi kodu girip şifresini oluşturur."""
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        kod = (request.form.get("kod") or "").strip()
+        p1 = request.form.get("new_password", "")
+        p2 = request.form.get("new_password2", "")
+        data = load_users()
+        usr = next((u for u in data.get("users", [])
+                    if u.get("email", "").lower() == email), None)
+        if not usr:
+            flash("Bu e-posta için davet bulunamadı.", "danger")
+            return render_template("register.html")
+        if usr.get("durum") == "aktif":
+            flash("Bu hesap zaten aktif. Giriş yapabilirsiniz.", "danger")
+            return render_template("register.html")
+        if str(usr.get("davet_kodu", "")) != kod:
+            flash("Davet kodu hatalı.", "danger")
+            return render_template("register.html")
+        if int(usr.get("davet_exp", 0)) < int(time.time()):
+            flash("Davet kodunun süresi doldu. Yöneticinizden yeni davet isteyin.", "danger")
+            return render_template("register.html")
+        if len(p1) < 4:
+            flash("Şifre en az 4 karakter olmalı.", "danger")
+            return render_template("register.html")
+        if p1 != p2:
+            flash("Şifreler eşleşmiyor.", "danger")
+            return render_template("register.html")
+        usr["durum"] = "aktif"
+        usr["sifre_hash"] = _hash_pw(p1, usr.get("salt", ""))
+        usr["davet_kodu"] = ""
+        usr["davet_exp"] = 0
+        save_users(data)
+        flash("Hesabınız oluşturuldu. Giriş yapabilirsiniz.", "success")
+        return redirect(url_for("login"))
+    return render_template("register.html")
+
+
 # ─── Ana sayfa ────────────────────────────────────────────────────────────
 
 
@@ -324,7 +494,7 @@ def index():
 
 
 @app.route("/queries")
-@login_required
+@admin_required
 def queries_list():
     meta = load_manifest()
     queries = sorted(meta.get("queries", []), key=lambda q: (q.get("order", 999), q.get("file", "")))
@@ -332,7 +502,7 @@ def queries_list():
 
 
 @app.route("/queries/new", methods=["GET", "POST"])
-@login_required
+@admin_required
 def query_new():
     if request.method == "POST":
         title = request.form.get("title", "").strip()
@@ -378,7 +548,7 @@ def query_new():
 
 
 @app.route("/queries/edit/<filename>", methods=["GET", "POST"])
-@login_required
+@admin_required
 def query_edit(filename):
     meta = load_manifest()
     entry = next((q for q in meta.get("queries", []) if q.get("file") == filename), None)
@@ -410,7 +580,7 @@ def query_edit(filename):
 
 
 @app.route("/queries/test", methods=["POST"])
-@login_required
+@admin_required
 def query_test():
     """Panelden tek sorguyu ERP'de çalıştırıp sonucu JSON olarak döndürür."""
     sql = request.form.get("sql", "").strip()
@@ -446,7 +616,7 @@ def query_test():
 
 
 @app.route("/queries/delete/<filename>", methods=["POST"])
-@login_required
+@admin_required
 def query_delete(filename):
     meta = load_manifest()
     meta["queries"] = [q for q in meta.get("queries", []) if q.get("file") != filename]
@@ -462,7 +632,7 @@ def query_delete(filename):
 
 
 @app.route("/queries/toggle/<filename>", methods=["POST"])
-@login_required
+@admin_required
 def query_toggle(filename):
     meta = load_manifest()
     for q in meta.get("queries", []):
@@ -473,7 +643,7 @@ def query_toggle(filename):
 
 
 @app.route("/queries/move/<filename>/<direction>", methods=["POST"])
-@login_required
+@admin_required
 def query_move(filename, direction):
     meta = load_manifest()
     queries = sorted(meta.get("queries", []), key=lambda q: (q.get("order", 999), q.get("file", "")))
@@ -491,7 +661,7 @@ def query_move(filename, direction):
 
 
 @app.route("/smtp")
-@login_required
+@admin_required
 def smtp_list():
     cfg = load_config()
     source = rb._resolve_path(BASE_DIR, cfg.get("smtp_profiles_source", ""))
@@ -500,7 +670,7 @@ def smtp_list():
 
 
 @app.route("/smtp/edit/<pid>", methods=["GET", "POST"])
-@login_required
+@admin_required
 def smtp_edit(pid):
     cfg = load_config()
     source = rb._resolve_path(BASE_DIR, cfg.get("smtp_profiles_source", ""))
@@ -535,7 +705,7 @@ def smtp_edit(pid):
 
 
 @app.route("/smtp/test/<pid>", methods=["POST"])
-@login_required
+@admin_required
 def smtp_test(pid):
     cfg = load_config()
     source = rb._resolve_path(BASE_DIR, cfg.get("smtp_profiles_source", ""))
@@ -557,7 +727,7 @@ def smtp_test(pid):
 
 
 @app.route("/erp")
-@login_required
+@admin_required
 def erp_list():
     cfg = load_config()
     source = rb._resolve_path(BASE_DIR, cfg.get("erp_connection_source", ""))
@@ -566,7 +736,7 @@ def erp_list():
 
 
 @app.route("/erp/edit/<pid>", methods=["GET", "POST"])
-@login_required
+@admin_required
 def erp_edit(pid):
     cfg = load_config()
     source = rb._resolve_path(BASE_DIR, cfg.get("erp_connection_source", ""))
@@ -600,7 +770,7 @@ def erp_edit(pid):
 
 
 @app.route("/erp/test/<pid>", methods=["POST"])
-@login_required
+@admin_required
 def erp_test(pid):
     cfg = load_config()
     source = rb._resolve_path(BASE_DIR, cfg.get("erp_connection_source", ""))
@@ -623,7 +793,7 @@ def erp_test(pid):
 
 
 @app.route("/settings", methods=["GET", "POST"])
-@login_required
+@admin_required
 def settings():
     cfg = load_config()
     if request.method == "POST":
@@ -669,7 +839,7 @@ def settings():
 
 
 @app.route("/profile/<pid>/time", methods=["POST"])
-@login_required
+@admin_required
 def profile_save_time(pid):
     data = load_profiles()
     prof = next((p for p in data["profiles"] if p.get("id") == pid), None)
@@ -704,7 +874,7 @@ def profile_save_time(pid):
 
 
 @app.route("/schedule/install", methods=["POST"])
-@login_required
+@admin_required
 def schedule_install():
     cfg = load_config()
     result = install_schedule(cfg)
@@ -716,7 +886,7 @@ def schedule_install():
 
 
 @app.route("/schedule/uninstall", methods=["POST"])
-@login_required
+@admin_required
 def schedule_uninstall():
     result = uninstall_schedule()
     if result.get("success"):
@@ -727,7 +897,7 @@ def schedule_uninstall():
 
 
 @app.route("/schedule/install/<pid>", methods=["POST"])
-@login_required
+@admin_required
 def schedule_install_profile(pid):
     data = load_profiles()
     prof = next((p for p in data["profiles"] if p.get("id") == pid), None)
@@ -743,7 +913,7 @@ def schedule_install_profile(pid):
 
 
 @app.route("/schedule/uninstall/<pid>", methods=["POST"])
-@login_required
+@admin_required
 def schedule_uninstall_profile(pid):
     result = uninstall_one_profile(pid)
     if result.get("success"):
@@ -969,7 +1139,7 @@ def save_profiles(data: dict) -> None:
 
 
 @app.route("/profiles")
-@login_required
+@admin_required
 def profiles_list():
     meta = load_manifest()
     queries = sorted(meta.get("queries", []), key=lambda q: (q.get("order", 999), q.get("file", "")))
@@ -978,7 +1148,7 @@ def profiles_list():
 
 
 @app.route("/profiles/new", methods=["GET", "POST"])
-@login_required
+@admin_required
 def profile_new():
     meta = load_manifest()
     queries = sorted(meta.get("queries", []), key=lambda q: (q.get("order", 999), q.get("file", "")))
@@ -1017,7 +1187,7 @@ def profile_new():
 
 
 @app.route("/profiles/edit/<pid>", methods=["GET", "POST"])
-@login_required
+@admin_required
 def profile_edit(pid):
     meta = load_manifest()
     queries = sorted(meta.get("queries", []), key=lambda q: (q.get("order", 999), q.get("file", "")))
@@ -1051,7 +1221,7 @@ def profile_edit(pid):
 
 
 @app.route("/profiles/delete/<pid>", methods=["POST"])
-@login_required
+@admin_required
 def profile_delete(pid):
     data = load_profiles()
     data["profiles"] = [p for p in data["profiles"] if p.get("id") != pid]
@@ -1061,7 +1231,7 @@ def profile_delete(pid):
 
 
 @app.route("/profiles/run/<pid>", methods=["POST"])
-@login_required
+@admin_required
 def profile_run(pid):
     cfg = load_config()
     # Formdan açık talimat gelirse onu kullan; yoksa profilin kendi ayarı
@@ -1084,7 +1254,7 @@ def profile_run(pid):
 
 
 @app.route("/run", methods=["POST"])
-@login_required
+@admin_required
 def run_briefing_now():
     cfg = load_config()
     send_email = request.form.get("send_email") == "on"
@@ -1168,7 +1338,7 @@ def report_view_page(filename):
 
 
 @app.route("/secrets", methods=["GET", "POST"])
-@login_required
+@admin_required
 def secrets_page():
     """Gizli değer yönetimi: ERP, SMTP şifreleri DPAPI ile secrets.dat'te saklanır."""
     if request.method == "POST":
