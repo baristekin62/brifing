@@ -482,24 +482,38 @@ def build_insights(cfg: dict, query_results: list) -> str:
 
 
 def _md_inline(text: str) -> str:
-    """**bold** işaretlerini <strong> yapar; HTML escape yapar."""
+    """**bold** işaretlerini <strong> yapar; HTML escape yapar.
+
+    _delta_text'in ürettiği güvenli <span> etiketleri (renkli ok) escape'ten
+    önce yer tutucuya alınıp sonunda geri konur — ham HTML görünmez.
+    """
     import html as _html
-    text = _html.escape(str(text))
+    import re as _re
+    src = str(text)
+    spans = []
+    def _keep(m):
+        spans.append(m.group(0))
+        return f"\x00span{len(spans)-1}\x00"
+    src = _re.sub(r"<span[^>]*>.*?</span>", _keep, src)
+    escaped = _html.escape(src)
     out = []
     i = 0
     while True:
-        j = text.find("**", i)
+        j = escaped.find("**", i)
         if j == -1:
-            out.append(text[i:])
+            out.append(escaped[i:])
             break
-        k = text.find("**", j + 2)
+        k = escaped.find("**", j + 2)
         if k == -1:
-            out.append(text[i:])
+            out.append(escaped[i:])
             break
-        out.append(text[i:j])
-        out.append("<strong>" + text[j + 2:k] + "</strong>")
+        out.append(escaped[i:j])
+        out.append("<strong>" + escaped[j + 2:k] + "</strong>")
         i = k + 2
-    return "".join(out)
+    result = "".join(out)
+    for idx, sp in enumerate(spans):
+        result = result.replace(f"\x00span{idx}\x00", sp)
+    return result
 
 
 if __name__ == "__main__":
