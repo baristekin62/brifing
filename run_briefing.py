@@ -207,13 +207,27 @@ def _resolve_path(base_dir: Path, value: str) -> Path:
 # ─── ERP Katmanı ──────────────────────────────────────────────────────────
 
 
+def resolve_odbc_driver(preferred: str) -> str:
+    """Tercih edilen ODBC sürücüsünü dener; kurulu değilse mevcut bir SQL Server sürücüsünü seçer."""
+    import pyodbc
+    installed = pyodbc.drivers()
+    if preferred in installed:
+        return preferred
+    # Tercih edileni bulamadık: sürüm numarasına göre en yenisini seç
+    for cand in ("ODBC Driver 18 for SQL Server", "ODBC Driver 17 for SQL Server",
+                 "ODBC Driver 13 for SQL Server", "SQL Server Native Client 11.0"):
+        if cand in installed:
+            return cand
+    return preferred  # kayıtlı adı kullan; ODBC bulamazsa hata mesajıyla döner
+
+
 def build_erp_conn_str(profile: dict) -> str:
     server = profile.get("server", "")
     port = profile.get("port") or 1433
     database = profile.get("database", "")
     username = profile.get("username", "")
     password = _decode_secret(profile.get("password_encrypted", ""))
-    driver = profile.get("driver", "ODBC Driver 17 for SQL Server")
+    driver = resolve_odbc_driver(profile.get("driver", "ODBC Driver 17 for SQL Server"))
     encrypt = "yes" if profile.get("encrypt") else "no"
     trust = "yes" if profile.get("trust_server_certificate") else "no"
     app_name = profile.get("application_name", "OZEN_Briefing")
