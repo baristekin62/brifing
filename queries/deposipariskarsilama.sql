@@ -126,7 +126,7 @@
 
 
 
-    WHERE ssip_tarih >= DATEADD(DAY, -30, GETDATE())
+    WHERE ssip_tarih >= DATEADD(DAY, -30, CAST(GETDATE() AS DATE))
 
 
 
@@ -134,7 +134,7 @@
 
 
 
-      AND ssip_tarih <= GETDATE()
+      AND ssip_tarih < CAST(GETDATE() AS DATE)
 
 
 

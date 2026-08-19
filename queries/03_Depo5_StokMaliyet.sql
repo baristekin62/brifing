@@ -39,7 +39,7 @@ MevcutStoklar AS
     SELECT
         S.sto_kod,
         S.sto_reyon_kodu,
-        dbo.fn_DepodakiMiktar(S.sto_kod, 5, GETDATE() - 1) AS Depo5_Miktar
+        dbo.fn_DepodakiMiktar(S.sto_kod, 5, CAST(GETDATE() AS DATE)) AS Depo5_Miktar
     FROM STOKLAR S WITH (NOLOCK)
     WHERE S.sto_pasif_fl = 0
 )

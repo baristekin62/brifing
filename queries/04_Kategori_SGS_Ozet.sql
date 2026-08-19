@@ -24,18 +24,18 @@ Stok AS
         S.sto_kod,
         R.ryn_kod AS REYON_KOD,
         S.sto_anagrup_kod AS ANA_GRUP_KOD,
-        CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 101, GETDATE() - 1) AS DECIMAL(18,2)) AS AtaevlerStok,
-        CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 102, GETDATE() - 1) AS DECIMAL(18,2)) AS ErikliStok,
-        CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 103, GETDATE() - 1) AS DECIMAL(18,2)) AS KutahyaStok,
-        CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 104, GETDATE() - 1) AS DECIMAL(18,2)) AS IhsaniyeStok,
-        CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 105, GETDATE() - 1) AS DECIMAL(18,2)) AS InegolStok,
-        CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 5, GETDATE() - 1) AS DECIMAL(18,2)) AS DepoStok,
-        (CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 501, GETDATE() - 1) AS DECIMAL(18,2)) +
-         CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 502, GETDATE() - 1) AS DECIMAL(18,2)) +
-         CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 503, GETDATE() - 1) AS DECIMAL(18,2)) +
-         CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 504, GETDATE() - 1) AS DECIMAL(18,2)) +
-         CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 505, GETDATE() - 1) AS DECIMAL(18,2)) +
-         CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 6, GETDATE() - 1) AS DECIMAL(18,2))) AS IadeDepolarStok
+        CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 101, CAST(GETDATE() AS DATE)) AS DECIMAL(18,2)) AS AtaevlerStok,
+        CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 102, CAST(GETDATE() AS DATE)) AS DECIMAL(18,2)) AS ErikliStok,
+        CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 103, CAST(GETDATE() AS DATE)) AS DECIMAL(18,2)) AS KutahyaStok,
+        CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 104, CAST(GETDATE() AS DATE)) AS DECIMAL(18,2)) AS IhsaniyeStok,
+        CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 105, CAST(GETDATE() AS DATE)) AS DECIMAL(18,2)) AS InegolStok,
+        CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 5, CAST(GETDATE() AS DATE)) AS DECIMAL(18,2)) AS DepoStok,
+        (CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 501, CAST(GETDATE() AS DATE)) AS DECIMAL(18,2)) +
+         CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 502, CAST(GETDATE() AS DATE)) AS DECIMAL(18,2)) +
+         CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 503, CAST(GETDATE() AS DATE)) AS DECIMAL(18,2)) +
+         CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 504, CAST(GETDATE() AS DATE)) AS DECIMAL(18,2)) +
+         CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 505, CAST(GETDATE() AS DATE)) AS DECIMAL(18,2)) +
+         CAST(dbo.fn_DepodakiMiktar(S.sto_kod, 6, CAST(GETDATE() AS DATE)) AS DECIMAL(18,2))) AS IadeDepolarStok
     FROM STOKLAR S WITH (NOLOCK)
     LEFT JOIN STOK_REYONLARI R WITH (NOLOCK)
         ON R.ryn_kod = S.sto_reyon_kodu
@@ -65,7 +65,7 @@ Satis AS
             WHEN sth_cikis_depo_no = 105 AND sth_tip = 0 AND sth_cins = 1 AND sth_normal_iade = 1 AND sth_evraktip IN (13,3) THEN -sth_tutar
             ELSE 0 END),2) AS DECIMAL(18,2)) AS InegolAylikSatis
     FROM STOK_HAREKETLERI WITH (NOLOCK)
-    WHERE sth_tarih >= DATEADD(DAY, -30, GETDATE())
+    WHERE sth_tarih >= DATEADD(DAY, -30, CAST(GETDATE() AS DATE))
     GROUP BY sth_stok_kod
 ),
 Sonuc AS
